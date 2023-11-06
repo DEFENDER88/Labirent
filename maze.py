@@ -1,8 +1,5 @@
 from pygame import *
 
-# Gerekli sınıflar
-
-# Spritelar için ana sınıf
 class GameSprite(sprite.Sprite):
     def __init__(self, player_image, player_x, player_y, player_speed):
         super().__init__()
@@ -15,7 +12,6 @@ class GameSprite(sprite.Sprite):
     def reset(self):
         window.blit(self.image, (self.rect.x, self.rect.y))
 
-# Oyuncu sprite için alt sınıf (oklarla kontrol edilir)
 class Player(GameSprite):
     def update(self):
         keys = key.get_pressed()
@@ -28,13 +24,12 @@ class Player(GameSprite):
         if keys[K_DOWN] and self.rect.y < win_height - 80:
             self.rect.y += self.speed
 
-# Düşman sprite için alt sınıf (kendini hareket ettirir)
 class Enemy(GameSprite):
     def __init__(self, player_image, player_x, player_y, player_speed, direction):
         super().__init__(player_image, player_x, player_y, player_speed)
         self.direction = direction
-        self.initial_y = player_y  # İlk konumunu kaydediyoruz
-        self.vertical_movement_range = 100  # Yukarıdan aşağıya hareket mesafesi
+        self.initial_y = player_y
+        self.vertical_movement_range = 100
 
     def update(self):
         if self.direction == "down":
@@ -50,6 +45,8 @@ class Enemy(GameSprite):
         elif self.direction == "left":
             if self.rect.x <= 5:
                 self.direction = "right"
+            elif sprite.spritecollide(self, wall_sprites, False):  # Duvara çarptığı kontrol ediliyor
+                self.direction = "right"  # Yönü sağa değiştir
             else:
                 self.rect.x -= self.speed
         elif self.direction == "right":
@@ -58,46 +55,37 @@ class Enemy(GameSprite):
             else:
                 self.rect.x += self.speed
 
-# 3.Hafta
-# Eng el sprite'ları için sınıf
 class Wall(sprite.Sprite):
     def __init__(self, wall_x, wall_y, wall_width, wall_height):
         super().__init__()
         self.width = wall_width
         self.height = wall_height
- 
-        # Duvar resmi - siyah bir dikdörtgen
         self.image = Surface([self.width, self.height])
         self.image.fill((0, 0, 0))
- 
-        # Her hareketli grafiğin bir rect özelliği saklaması gerekir - bir dikdörtgen
         self.rect = self.image.get_rect()
         self.rect.x = wall_x
         self.rect.y = wall_y
- 
+
     def draw_wall(self):
         window.blit(self.image, (self.rect.x, self.rect.y))
 
-# Oyun açıklaması
 
-# Oyun sahnesi
 win_width = 800
 win_height = 500
 window = display.set_mode((win_width, win_height))
 display.set_caption("Maze")
 background = transform.scale(image.load("Hero-Volcano.jpg"), (win_width, win_height))
 
-# 3.Hafta
-w1 = Wall(100, 20, 10, 380)
-w2 = Wall(100, 480, 350, 10)
+w1 = Wall(100, 20, 10, 350)
+w2 = Wall(100, 550, 350, 10)
 w3 = Wall(100, 20, 450, 10)
 w4 = Wall(300, 130, 10, 350)
 w5 = Wall(640, 130, 10, 360)
+wall_sprites = sprite.Group(w1, w2, w3, w4, w5)
 
-# Oyunun karakterleri
 player = Player('hero.png', 5, win_height - 80, 4) 
 monster1 = Enemy('indir.jpg', win_width - 450, 90, 3, "down")
-monster2 = Enemy('indir.jpg', win_width - 450, 45, 3, "left")
+monster2 = Enemy('indir.jpg', win_width - 150, 45, 3, "left")
 final = GameSprite('treasure.png', win_width - 300, win_height - 80, 0)
 
 game = True
@@ -107,7 +95,6 @@ FPS = 60
 
 font.init()
 score_font = font.Font(None, 40)
-
 score = 0
 
 win = font.Font(None, 60).render('KAZANDINIZ!', True, (151, 255, 255))
@@ -140,21 +127,15 @@ while game:
         monster2.reset()
         final.reset()
        
-        w1.draw_wall()
-        w2.draw_wall()
-        w3.draw_wall()
-        w4.draw_wall()
-        w5.draw_wall()
+        wall_sprites.draw(window)
         
-        if sprite.collide_rect(player, monster1) or sprite.collide_rect(player, monster2) or sprite.collide_rect(player, w1) or sprite.collide_rect(player, w2) or sprite.collide_rect(player, w3) or sprite.collide_rect(player, w4) or sprite.collide_rect(player, w5):
-            # Oyuncu duvara veya düşmana çarptı
+        if sprite.spritecollide(player, wall_sprites, False) or sprite.collide_rect(player, monster1) or sprite.collide_rect(player, monster2):
             finish = True
             window.blit(lose, (200, 200))
             kick.play()
             score -= 10
             
         elif sprite.collide_rect(player, final):
-            # Oyuncu hazineye dokundu, oyun kazanıldı
             finish = True
             window.blit(win, (200, 200))
             money.play()
